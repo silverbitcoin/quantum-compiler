@@ -10,236 +10,445 @@
 use crate::lexer::{Location, Token, TokenType};
 use std::fmt;
 
-/// AST node for the entire module
+/// AST node for the entire module containing all declarations
 #[derive(Debug, Clone, PartialEq)]
 pub struct Module {
+    /// The name of the module
     pub name: String,
+    /// All struct definitions in this module
     pub structs: Vec<StructDef>,
+    /// All function definitions in this module
     pub functions: Vec<Function>,
+    /// All use declarations (imports) in this module
     pub uses: Vec<UseDecl>,
 }
 
-/// Use declaration (import)
+/// Use declaration (import) for importing modules and types
 #[derive(Debug, Clone, PartialEq)]
 pub struct UseDecl {
+    /// The module path being imported (e.g., ["std", "vector"])
     pub module_path: Vec<String>,
+    /// Source code location for error reporting
     pub location: Location,
 }
 
-/// Struct definition
+/// Struct definition containing name, fields, abilities, and visibility information.
+///
+/// Represents a complete struct declaration in the Quantum language with:
+/// - Field definitions with type annotations
+/// - Ability annotations (Copy, Drop, Store, Key)
+/// - Public/private visibility modifiers
+/// - Source location for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructDef {
+    /// The name of the struct
     pub name: String,
+    /// The fields contained in this struct
     pub fields: Vec<Field>,
+    /// The abilities this struct has (Copy, Drop, Store, Key)
     pub abilities: Vec<Ability>,
+    /// Whether this struct is publicly accessible
     pub is_public: bool,
+    /// Source code location for error reporting
     pub location: Location,
 }
 
-/// Struct field
+/// Struct field definition with type annotation.
+///
+/// Represents a single field within a struct, including:
+/// - Field name identifier
+/// - Type annotation for the field
+/// - Source location for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct Field {
+    /// The name of the field
     pub name: String,
+    /// The type of the field
     pub field_type: Type,
+    /// Source code location for error reporting
     pub location: Location,
 }
 
-/// Struct ability
+/// Struct ability annotation for resource management.
+///
+/// Abilities control how structs can be used:
+/// - `Copy`: Values can be copied implicitly
+/// - `Drop`: Values can be dropped/discarded
+/// - `Store`: Values can be stored in global storage
+/// - `Key`: Values can be used as storage keys
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ability {
+    /// Allows implicit copying of values
     Copy,
+    /// Allows values to be dropped without explicit handling
     Drop,
+    /// Allows values to be stored in global storage
     Store,
+    /// Allows values to be used as storage keys
     Key,
 }
 
-/// Function definition
+/// Function definition with parameters, return type, and implementation.
+///
+/// Represents a complete function declaration including:
+/// - Function name and parameters
+/// - Optional return type annotation
+/// - Function body with statements
+/// - Visibility and entry point modifiers
+/// - Source location for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {
+    /// The name of the function
     pub name: String,
+    /// The parameters accepted by this function
     pub parameters: Vec<Parameter>,
+    /// The return type of the function (None for void)
     pub return_type: Option<Type>,
+    /// The function body containing statements
     pub body: Block,
+    /// Whether this function is publicly accessible
     pub is_public: bool,
+    /// Whether this function is an entry point
     pub is_entry: bool,
+    /// Source code location for error reporting
     pub location: Location,
 }
 
-/// Function parameter
+/// Function parameter with type annotation and mutability.
+///
+/// Represents a single parameter in a function signature:
+/// - Parameter name identifier
+/// - Type annotation
+/// - Mutability modifier
+/// - Source location for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
+    /// The name of the parameter
     pub name: String,
+    /// The type of the parameter
     pub param_type: Type,
+    /// Whether the parameter is mutable
     pub is_mut: bool,
+    /// Source code location for error reporting
     pub location: Location,
 }
 
-/// Type annotation
+/// Type annotation for variables, parameters, and return values.
+///
+/// Represents all supported types in the Quantum language:
+/// - Primitive types: bool, u8-u256, address
+/// - Collection types: vector
+/// - User-defined types: struct
+/// - Reference types: immutable and mutable references
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
+    /// Boolean type (true/false)
     Bool,
+    /// 8-bit unsigned integer
     U8,
+    /// 16-bit unsigned integer
     U16,
+    /// 32-bit unsigned integer
     U32,
+    /// 64-bit unsigned integer
     U64,
+    /// 128-bit unsigned integer
     U128,
+    /// 256-bit unsigned integer
     U256,
+    /// Address type for account identifiers
     Address,
+    /// Vector/array type with element type
     Vector(Box<Type>),
+    /// Struct type with optional module path and name
     Struct {
+        /// Optional module path for the struct
         module: Option<String>,
+        /// The name of the struct
         name: String,
     },
+    /// Immutable reference to a type
     Reference(Box<Type>),
+    /// Mutable reference to a type
     MutableReference(Box<Type>),
 }
 
-/// Block of statements
+/// Block of statements representing a scope.
+///
+/// Contains a sequence of statements executed in order with:
+/// - Statement list
+/// - Source location for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {
+    /// The statements in this block
     pub statements: Vec<Statement>,
+    /// Source code location for error reporting
     pub location: Location,
 }
 
-/// Statement
+/// Statement in the Quantum language.
+///
+/// Represents all statement types:
+/// - Variable declarations (let)
+/// - Assignments
+/// - Control flow (if, while, loop, break, continue)
+/// - Function returns and aborts
+/// - Expression statements
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
+    /// Variable declaration with optional type annotation
     Let {
+        /// The variable name
         name: String,
+        /// Optional type annotation
         var_type: Option<Type>,
+        /// Initial value expression
         value: Expression,
+        /// Whether the variable is mutable
         is_mut: bool,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Assignment to a variable or field
     Assign {
+        /// The target of the assignment
         target: Expression,
+        /// The value to assign
         value: Expression,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Conditional statement with optional else block
     If {
+        /// The condition to evaluate
         condition: Expression,
+        /// Block executed if condition is true
         then_block: Block,
+        /// Optional block executed if condition is false
         else_block: Option<Block>,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// While loop with condition and body
     While {
+        /// The loop condition
         condition: Expression,
+        /// The loop body
         body: Block,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Infinite loop
     Loop {
+        /// The loop body
         body: Block,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Break statement to exit a loop
     Break {
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Continue statement to skip to next iteration
     Continue {
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Return statement with optional value
     Return {
+        /// Optional return value
         value: Option<Expression>,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Abort statement with error code
     Abort {
+        /// The error code expression
         code: Expression,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Expression statement
     Expression {
+        /// The expression to evaluate
         expr: Expression,
+        /// Source code location for error reporting
         location: Location,
     },
 }
 
-/// Expression
+/// Expression in the Quantum language.
+///
+/// Represents all expression types:
+/// - Literals (int, bool, string, address)
+/// - Variables and identifiers
+/// - Binary and unary operations
+/// - Function calls
+/// - Field access
+/// - Borrowing and move semantics
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
+    /// Integer literal with string representation
     IntLiteral {
+        /// The integer value as a string
         value: String,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Boolean literal
     BoolLiteral {
+        /// The boolean value
         value: bool,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// String literal
     StringLiteral {
+        /// The string value
         value: String,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Address literal
     AddressLiteral {
+        /// The address value as a string
         value: String,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Variable or function identifier
     Identifier {
+        /// The identifier name
         name: String,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Binary operation (e.g., addition, comparison)
     Binary {
+        /// The binary operator
         op: BinaryOp,
+        /// Left operand
         left: Box<Expression>,
+        /// Right operand
         right: Box<Expression>,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Unary operation (e.g., negation, bitwise not)
     Unary {
+        /// The unary operator
         op: UnaryOp,
+        /// The operand
         operand: Box<Expression>,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Function call expression
     Call {
+        /// The function to call
         function: Box<Expression>,
+        /// Arguments to the function
         arguments: Vec<Expression>,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Field access on a struct
     FieldAccess {
+        /// The object whose field is accessed
         object: Box<Expression>,
+        /// The field name
         field: String,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Borrow expression (reference creation)
     Borrow {
+        /// Whether the borrow is mutable
         is_mut: bool,
+        /// The expression being borrowed
         expr: Box<Expression>,
+        /// Source code location for error reporting
         location: Location,
     },
+    /// Move expression for explicit ownership transfer
     Move {
+        /// The expression being moved
         expr: Box<Expression>,
+        /// Source code location for error reporting
         location: Location,
     },
 }
 
-/// Binary operator
+/// Binary operator for arithmetic, bitwise, comparison, and logical operations.
+///
+/// Represents all binary operators supported in the Quantum language:
+/// - Arithmetic: +, -, *, /, %
+/// - Bitwise: &, |, ^, <<, >>
+/// - Comparison: ==, !=, <, <=, >, >=
+/// - Logical: &&, ||
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOp {
+    /// Addition operator (+)
     Add,
+    /// Subtraction operator (-)
     Sub,
+    /// Multiplication operator (*)
     Mul,
+    /// Division operator (/)
     Div,
+    /// Modulo operator (%)
     Mod,
+    /// Bitwise AND operator (&)
     BitAnd,
+    /// Bitwise OR operator (|)
     BitOr,
+    /// Bitwise XOR operator (^)
     BitXor,
+    /// Left shift operator (<<)
     LeftShift,
+    /// Right shift operator (>>)
     RightShift,
+    /// Equality operator (==)
     Equal,
+    /// Inequality operator (!=)
     NotEqual,
+    /// Less than operator (<)
     Less,
+    /// Less than or equal operator (<=)
     LessEqual,
+    /// Greater than operator (>)
     Greater,
+    /// Greater than or equal operator (>=)
     GreaterEqual,
+    /// Logical AND operator (&&)
     And,
+    /// Logical OR operator (||)
     Or,
 }
 
-/// Unary operator
+/// Unary operator for negation and bitwise operations.
+///
+/// Represents all unary operators supported in the Quantum language:
+/// - Logical: !
+/// - Bitwise: ~
+/// - Arithmetic: -
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
+    /// Logical NOT operator (!)
     Not,
+    /// Bitwise NOT operator (~)
     BitNot,
+    /// Negation operator (-)
     Neg,
 }
 
-/// Complete AST
+/// Complete Abstract Syntax Tree (AST) for a Quantum module.
+///
+/// The root node of the parse tree containing the entire module definition.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AST {
+    /// The module definition
     pub module: Module,
 }
 
@@ -266,13 +475,14 @@ impl Parser {
     }
 
     /// Peek at the next token
+    #[allow(dead_code)]
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.position + 1)
     }
 
     /// Advance to the next token
-    fn advance(&mut self) -> &Token {
-        let token = self.current();
+    fn advance(&mut self) -> Token {
+        let token = self.current().clone();
         if self.position < self.tokens.len() - 1 {
             self.position += 1;
         }

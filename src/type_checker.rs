@@ -10,15 +10,28 @@
 use crate::parser::{AST, Expression, Function, Module, Statement, Type};
 use std::collections::HashMap;
 
-/// Type checking error
+/// Type checking error with location information.
+///
+/// Represents a type error encountered during type checking with:
+/// - Error message describing the type mismatch or violation
+/// - Line and column numbers for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeError {
+    /// The error message describing the type error
     pub message: String,
+    /// The line number where the error occurred
     pub line: usize,
+    /// The column number where the error occurred
     pub column: usize,
 }
 
 impl TypeError {
+    /// Create a new type error with message and location.
+    ///
+    /// # Arguments
+    /// * `message` - Description of the type error
+    /// * `line` - Line number in source code
+    /// * `column` - Column number in source code
     pub fn new(message: String, line: usize, column: usize) -> Self {
         Self {
             message,
@@ -46,6 +59,8 @@ struct FunctionSignature {
 /// Struct information
 #[derive(Debug, Clone)]
 struct StructInfo {
+    /// Struct fields mapping field names to types
+    #[allow(dead_code)]
     fields: HashMap<String, Type>,
 }
 
@@ -78,6 +93,8 @@ impl TypeEnv {
         self.structs.insert(name, info);
     }
 
+    /// Get struct information by name
+    #[allow(dead_code)]
     fn get_struct(&self, name: &str) -> Option<&StructInfo> {
         self.structs.get(name)
     }
@@ -369,7 +386,10 @@ impl TypeChecker {
                 location,
             } => {
                 if let Expression::Identifier { name, .. } = &**function {
-                    if let Some(sig) = self.env.get_function(name) {
+                    // Clone the function signature to avoid borrow issues
+                    let sig_opt = self.env.get_function(name).cloned();
+                    
+                    if let Some(sig) = sig_opt {
                         if arguments.len() != sig.parameters.len() {
                             self.errors.push(TypeError::new(
                                 format!(

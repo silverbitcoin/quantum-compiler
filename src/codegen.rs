@@ -10,18 +10,26 @@
 use crate::parser::{AST, BinaryOp, Expression, Function, Module, Statement, Type, UnaryOp};
 use quantum_vm::bytecode::{
     Bytecode, Constant, Function as VMFunction, FunctionSignature, Instruction, Module as VMModule,
-    PackageMetadata, StructAbilities, StructDef, TypeTag,
+    StructAbilities, StructDef, TypeTag,
 };
 use silver_core::ObjectID;
 use std::collections::HashMap;
 
-/// Code generation error
+/// Code generation error during bytecode compilation.
+///
+/// Represents an error encountered during the code generation phase with:
+/// - Error message describing the compilation failure
 #[derive(Debug, Clone, PartialEq)]
 pub struct CodeGenError {
+    /// The error message describing the code generation failure
     pub message: String,
 }
 
 impl CodeGenError {
+    /// Create a new code generation error.
+    ///
+    /// # Arguments
+    /// * `message` - Description of the code generation error
     pub fn new(message: String) -> Self {
         Self { message }
     }
@@ -415,7 +423,7 @@ impl CodeGenerator {
                 }
 
                 // Generate function call
-                if let Expression::Identifier { name, .. } = &**function {
+                if let Expression::Identifier { .. } = &**function {
                     // For now, assume it's a local function call
                     // In a real implementation, we'd need to resolve the function index
                     code.push(Instruction::Call(0)); // Placeholder
@@ -426,7 +434,7 @@ impl CodeGenerator {
                 }
             }
 
-            Expression::FieldAccess { object, field, .. } => {
+            Expression::FieldAccess { object, .. } => {
                 self.generate_expression(object, code)?;
                 // For now, just a placeholder
                 code.push(Instruction::BorrowField(0));

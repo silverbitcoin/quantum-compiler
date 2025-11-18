@@ -8,17 +8,30 @@
 //! - Resource safety
 
 use crate::parser::{AST, Expression, Function, Module, Statement};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-/// Borrow checking error
+/// Borrow checking error with location information.
+///
+/// Represents a borrow checking violation encountered during analysis with:
+/// - Error message describing the borrow violation
+/// - Line and column numbers for error reporting
 #[derive(Debug, Clone, PartialEq)]
 pub struct BorrowError {
+    /// The error message describing the borrow violation
     pub message: String,
+    /// The line number where the error occurred
     pub line: usize,
+    /// The column number where the error occurred
     pub column: usize,
 }
 
 impl BorrowError {
+    /// Create a new borrow error with message and location.
+    ///
+    /// # Arguments
+    /// * `message` - Description of the borrow violation
+    /// * `line` - Line number in source code
+    /// * `column` - Column number in source code
     pub fn new(message: String, line: usize, column: usize) -> Self {
         Self {
             message,
@@ -121,6 +134,7 @@ impl BorrowEnv {
     }
 
     /// Release immutable borrow
+    #[allow(dead_code)]
     fn release_immutable_borrow(&mut self, name: &str) {
         if let Some(VarState::ImmutablyBorrowed(count)) = self.variables.get(name) {
             if *count > 1 {
@@ -133,6 +147,7 @@ impl BorrowEnv {
     }
 
     /// Release mutable borrow
+    #[allow(dead_code)]
     fn release_mutable_borrow(&mut self, name: &str) {
         if matches!(self.variables.get(name), Some(VarState::MutablyBorrowed)) {
             self.variables.insert(name.to_string(), VarState::Owned);
@@ -223,7 +238,7 @@ impl BorrowChecker {
     fn check_statement(&mut self, statement: &Statement) -> Result<(), Vec<BorrowError>> {
         match statement {
             Statement::Let {
-                name, value, location, ..
+                name, value, ..
             } => {
                 self.check_expression(value)?;
                 self.env.add_variable(name.clone());
@@ -232,7 +247,7 @@ impl BorrowChecker {
             Statement::Assign {
                 target,
                 value,
-                location,
+                ..
             } => {
                 self.check_expression(target)?;
                 self.check_expression(value)?;

@@ -13,95 +13,173 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     // Keywords
+    /// `module` keyword for module declarations
     Module,
+    /// `use` keyword for imports
     Use,
+    /// `struct` keyword for struct definitions
     Struct,
+    /// `fun` keyword for function definitions
     Fun,
+    /// `public` keyword for public visibility
     Public,
+    /// `entry` keyword for entry functions
     Entry,
+    /// `has` keyword for ability declarations
     Has,
+    /// `copy` ability keyword
     Copy,
+    /// `drop` ability keyword
     Drop,
+    /// `store` ability keyword
     Store,
+    /// `key` ability keyword
     Key,
+    /// `let` keyword for variable declarations
     Let,
+    /// `mut` keyword for mutable variables
     Mut,
+    /// `if` keyword for conditional statements
     If,
+    /// `else` keyword for else blocks
     Else,
+    /// `while` keyword for while loops
     While,
+    /// `loop` keyword for infinite loops
     Loop,
+    /// `break` keyword for loop breaks
     Break,
+    /// `continue` keyword for loop continuation
     Continue,
+    /// `return` keyword for function returns
     Return,
+    /// `abort` keyword for transaction aborts
     Abort,
+    /// `move` keyword for move semantics
     Move,
+    /// `borrow` keyword for borrowing
     Borrow,
+    /// `true` boolean literal
     True,
+    /// `false` boolean literal
     False,
 
     // Types
+    /// `bool` type keyword
     Bool,
+    /// `u8` type keyword
     U8,
+    /// `u16` type keyword
     U16,
+    /// `u32` type keyword
     U32,
+    /// `u64` type keyword
     U64,
+    /// `u128` type keyword
     U128,
+    /// `u256` type keyword
     U256,
+    /// `address` type keyword
     Address,
+    /// `vector` type keyword
     Vector,
 
     // Operators
-    Plus,          // +
-    Minus,         // -
-    Star,          // *
-    Slash,         // /
-    Percent,       // %
-    Ampersand,     // &
-    Pipe,          // |
-    Caret,         // ^
-    Tilde,         // ~
-    LeftShift,     // <<
-    RightShift,    // >>
-    Equal,         // ==
-    NotEqual,      // !=
-    Less,          // <
-    LessEqual,     // <=
-    Greater,       // >
-    GreaterEqual,  // >=
-    And,           // &&
-    Or,            // ||
-    Not,           // !
-    Assign,        // =
-    PlusAssign,    // +=
-    MinusAssign,   // -=
-    StarAssign,    // *=
-    SlashAssign,   // /=
-    PercentAssign, // %=
+    /// `+` addition operator
+    Plus,
+    /// `-` subtraction operator
+    Minus,
+    /// `*` multiplication operator
+    Star,
+    /// `/` division operator
+    Slash,
+    /// `%` modulo operator
+    Percent,
+    /// `&` bitwise AND operator
+    Ampersand,
+    /// `|` bitwise OR operator
+    Pipe,
+    /// `^` bitwise XOR operator
+    Caret,
+    /// `~` bitwise NOT operator
+    Tilde,
+    /// `<<` left shift operator
+    LeftShift,
+    /// `>>` right shift operator
+    RightShift,
+    /// `==` equality operator
+    Equal,
+    /// `!=` inequality operator
+    NotEqual,
+    /// `<` less than operator
+    Less,
+    /// `<=` less than or equal operator
+    LessEqual,
+    /// `>` greater than operator
+    Greater,
+    /// `>=` greater than or equal operator
+    GreaterEqual,
+    /// `&&` logical AND operator
+    And,
+    /// `||` logical OR operator
+    Or,
+    /// `!` logical NOT operator
+    Not,
+    /// `=` assignment operator
+    Assign,
+    /// `+=` addition assignment operator
+    PlusAssign,
+    /// `-=` subtraction assignment operator
+    MinusAssign,
+    /// `*=` multiplication assignment operator
+    StarAssign,
+    /// `/=` division assignment operator
+    SlashAssign,
+    /// `%=` modulo assignment operator
+    PercentAssign,
 
     // Delimiters
-    LeftParen,    // (
-    RightParen,   // )
-    LeftBrace,    // {
-    RightBrace,   // }
-    LeftBracket,  // [
-    RightBracket, // ]
-    Comma,        // ,
-    Semicolon,    // ;
-    Colon,        // :
-    DoubleColon,  // ::
-    Dot,          // .
-    Arrow,        // ->
+    /// `(` left parenthesis
+    LeftParen,
+    /// `)` right parenthesis
+    RightParen,
+    /// `{` left brace
+    LeftBrace,
+    /// `}` right brace
+    RightBrace,
+    /// `[` left bracket
+    LeftBracket,
+    /// `]` right bracket
+    RightBracket,
+    /// `,` comma
+    Comma,
+    /// `;` semicolon
+    Semicolon,
+    /// `:` colon
+    Colon,
+    /// `::` double colon (module separator)
+    DoubleColon,
+    /// `.` dot (field access)
+    Dot,
+    /// `->` arrow (return type annotation)
+    Arrow,
 
     // Literals
+    /// Integer literal (e.g., `42`, `0xFF`)
     IntLiteral(String),
+    /// String literal (e.g., `"hello"`)
     StringLiteral(String),
+    /// Address literal (e.g., `@0x1`)
     AddressLiteral(String),
 
     // Identifiers
+    /// Identifier token (variable, function, or type name)
     Identifier(String),
 
     // Special
+    /// End of file marker
     Eof,
+    /// Lexical error with error message
     Error(String),
 }
 
