@@ -18,8 +18,11 @@ pub mod type_checker;
 pub mod borrow_checker;
 pub mod codegen;
 
-pub use lexer::Lexer;
-pub use parser::{Parser, AST};
-pub use type_checker::TypeChecker;
-pub use borrow_checker::BorrowChecker;
-pub use codegen::CodeGenerator;
+pub use lexer::{Lexer, Token, TokenType, Location};
+pub use parser::{Parser, AST, Module, Function, StructDef, Type, Expression, Statement};
+pub use type_checker::{TypeChecker, TypeError};
+pub use borrow_checker::{BorrowChecker, BorrowError};
+pub use codegen::{CodeGenerator, CodeGenError};
+
+// Re-export bytecode types from quantum-vm
+pub use quantum_vm::bytecode;

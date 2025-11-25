@@ -956,9 +956,9 @@ mod tests {
         let mut lexer = Lexer::new(source);
         let tokens = lexer.tokenize().unwrap();
 
-        assert_eq!(tokens.len(), 10); // 9 tokens + EOF
+        assert_eq!(tokens.len(), 11); // 10 tokens + EOF
         assert_eq!(tokens[0].token_type, TokenType::Module);
-        assert_eq!(tokens[8].token_type, TokenType::RightBrace);
-        assert_eq!(tokens[9].token_type, TokenType::Eof);
+        assert_eq!(tokens[9].token_type, TokenType::RightBrace);
+        assert_eq!(tokens[10].token_type, TokenType::Eof);
     }
 }
