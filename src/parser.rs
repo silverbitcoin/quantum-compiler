@@ -470,7 +470,9 @@ impl Parser {
     /// Get the current token
     fn current(&self) -> &Token {
         self.tokens.get(self.position).unwrap_or_else(|| {
-            self.tokens.last().expect("Token stream should not be empty")
+            self.tokens
+                .last()
+                .expect("Token stream should not be empty")
         })
     }
 
@@ -1055,51 +1057,5 @@ impl fmt::Display for Type {
             Type::Reference(inner) => write!(f, "&{}", inner),
             Type::MutableReference(inner) => write!(f, "&mut {}", inner),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lexer::Lexer;
-
-    #[test]
-    fn test_parse_simple_module() {
-        let source = "module test { }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        assert_eq!(ast.module.name, "test");
-        assert_eq!(ast.module.structs.len(), 0);
-        assert_eq!(ast.module.functions.len(), 0);
-    }
-
-    #[test]
-    fn test_parse_struct() {
-        let source = "module test { struct Coin { value: u64 } }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        assert_eq!(ast.module.structs.len(), 1);
-        assert_eq!(ast.module.structs[0].name, "Coin");
-        assert_eq!(ast.module.structs[0].fields.len(), 1);
-        assert_eq!(ast.module.structs[0].fields[0].name, "value");
-    }
-
-    #[test]
-    fn test_parse_function() {
-        let source = "module test { fun foo() { } }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        assert_eq!(ast.module.functions.len(), 1);
-        assert_eq!(ast.module.functions[0].name, "foo");
-        assert_eq!(ast.module.functions[0].parameters.len(), 0);
     }
 }

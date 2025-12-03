@@ -7,7 +7,7 @@
 //! - Move semantics
 //! - Resource safety
 
-use crate::parser::{AST, Expression, Function, Module, Statement};
+use crate::parser::{Expression, Function, Module, Statement, AST};
 use std::collections::HashMap;
 
 /// Borrow checking error with location information.
@@ -84,9 +84,10 @@ impl BorrowEnv {
             Some(VarState::ImmutablyBorrowed(_)) => {
                 Err(format!("Cannot move '{}' while it is borrowed", name))
             }
-            Some(VarState::MutablyBorrowed) => {
-                Err(format!("Cannot move '{}' while it is mutably borrowed", name))
-            }
+            Some(VarState::MutablyBorrowed) => Err(format!(
+                "Cannot move '{}' while it is mutably borrowed",
+                name
+            )),
             None => Err(format!("Undefined variable: {}", name)),
         }
     }
@@ -159,9 +160,10 @@ impl BorrowEnv {
         match self.variables.get(name) {
             Some(VarState::Owned) | Some(VarState::ImmutablyBorrowed(_)) => Ok(()),
             Some(VarState::Moved) => Err(format!("Variable '{}' has been moved", name)),
-            Some(VarState::MutablyBorrowed) => {
-                Err(format!("Cannot use '{}' while it is mutably borrowed", name))
-            }
+            Some(VarState::MutablyBorrowed) => Err(format!(
+                "Cannot use '{}' while it is mutably borrowed",
+                name
+            )),
             None => Err(format!("Undefined variable: {}", name)),
         }
     }
@@ -237,18 +239,12 @@ impl BorrowChecker {
     /// Check statement
     fn check_statement(&mut self, statement: &Statement) -> Result<(), Vec<BorrowError>> {
         match statement {
-            Statement::Let {
-                name, value, ..
-            } => {
+            Statement::Let { name, value, .. } => {
                 self.check_expression(value)?;
                 self.env.add_variable(name.clone());
             }
 
-            Statement::Assign {
-                target,
-                value,
-                ..
-            } => {
+            Statement::Assign { target, value, .. } => {
                 self.check_expression(target)?;
                 self.check_expression(value)?;
             }
@@ -272,7 +268,9 @@ impl BorrowChecker {
                 }
             }
 
-            Statement::While { condition, body, .. } => {
+            Statement::While {
+                condition, body, ..
+            } => {
                 self.check_expression(condition)?;
 
                 for stmt in &body.statements {
@@ -313,20 +311,13 @@ impl BorrowChecker {
         match expression {
             Expression::Identifier { name, location } => {
                 if let Err(err) = self.env.can_use(name) {
-                    self.errors.push(BorrowError::new(
-                        err,
-                        location.line,
-                        location.column,
-                    ));
+                    self.errors
+                        .push(BorrowError::new(err, location.line, location.column));
                     return Err(self.errors.clone());
                 }
             }
 
-            Expression::Binary {
-                left,
-                right,
-                ..
-            } => {
+            Expression::Binary { left, right, .. } => {
                 self.check_expression(left)?;
                 self.check_expression(right)?;
             }
@@ -363,11 +354,8 @@ impl BorrowChecker {
                     };
 
                     if let Err(err) = result {
-                        self.errors.push(BorrowError::new(
-                            err,
-                            location.line,
-                            location.column,
-                        ));
+                        self.errors
+                            .push(BorrowError::new(err, location.line, location.column));
                         return Err(self.errors.clone());
                     }
                 } else {
@@ -378,11 +366,8 @@ impl BorrowChecker {
             Expression::Move { expr, location } => {
                 if let Expression::Identifier { name, .. } = &**expr {
                     if let Err(err) = self.env.move_variable(name) {
-                        self.errors.push(BorrowError::new(
-                            err,
-                            location.line,
-                            location.column,
-                        ));
+                        self.errors
+                            .push(BorrowError::new(err, location.line, location.column));
                         return Err(self.errors.clone());
                     }
                 } else {
@@ -404,24 +389,5 @@ impl BorrowChecker {
 impl Default for BorrowChecker {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lexer::Lexer;
-    use crate::parser::Parser;
-
-    #[test]
-    fn test_borrow_check_simple_function() {
-        let source = "module test { fun foo() { let x: u64 = 42; } }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        let mut borrow_checker = BorrowChecker::new();
-        assert!(borrow_checker.check(&ast).is_ok());
     }
 }

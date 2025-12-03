@@ -12,17 +12,17 @@
 #![warn(missing_docs, rust_2018_idioms)]
 #![forbid(unsafe_code)]
 
+pub mod borrow_checker;
+pub mod codegen;
 pub mod lexer;
 pub mod parser;
 pub mod type_checker;
-pub mod borrow_checker;
-pub mod codegen;
 
-pub use lexer::{Lexer, Token, TokenType, Location};
-pub use parser::{Parser, AST, Module, Function, StructDef, Type, Expression, Statement};
-pub use type_checker::{TypeChecker, TypeError};
 pub use borrow_checker::{BorrowChecker, BorrowError};
-pub use codegen::{CodeGenerator, CodeGenError};
+pub use codegen::{CodeGenError, CodeGenerator};
+pub use lexer::{Lexer, Location, Token, TokenType};
+pub use parser::{Expression, Function, Module, Parser, Statement, StructDef, Type, AST};
+pub use type_checker::{TypeChecker, TypeError};
 
 // Re-export bytecode types from quantum-vm
 pub use quantum_vm::bytecode;

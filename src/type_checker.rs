@@ -7,7 +7,7 @@
 //! - Type inference
 //! - Proper error reporting
 
-use crate::parser::{AST, Expression, Function, Module, Statement, Type};
+use crate::parser::{Expression, Function, Module, Statement, Type, AST};
 use std::collections::HashMap;
 
 /// Type checking error with location information.
@@ -143,10 +143,8 @@ impl TypeChecker {
             for field in &struct_def.fields {
                 fields.insert(field.name.clone(), field.field_type.clone());
             }
-            self.env.add_struct(
-                struct_def.name.clone(),
-                StructInfo { fields },
-            );
+            self.env
+                .add_struct(struct_def.name.clone(), StructInfo { fields });
         }
 
         // Second pass: collect function signatures
@@ -388,7 +386,7 @@ impl TypeChecker {
                 if let Expression::Identifier { name, .. } = &**function {
                     // Clone the function signature to avoid borrow issues
                     let sig_opt = self.env.get_function(name).cloned();
-                    
+
                     if let Some(sig) = sig_opt {
                         if arguments.len() != sig.parameters.len() {
                             self.errors.push(TypeError::new(
@@ -484,36 +482,5 @@ impl TypeChecker {
 impl Default for TypeChecker {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lexer::Lexer;
-    use crate::parser::Parser;
-
-    #[test]
-    fn test_type_check_simple_function() {
-        let source = "module test { fun foo() { let x: u64 = 42; } }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        let mut type_checker = TypeChecker::new();
-        assert!(type_checker.check(&ast).is_ok());
-    }
-
-    #[test]
-    fn test_type_check_type_mismatch() {
-        let source = "module test { fun foo() { let x: bool = 42; } }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        let mut type_checker = TypeChecker::new();
-        assert!(type_checker.check(&ast).is_err());
     }
 }

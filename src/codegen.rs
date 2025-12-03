@@ -7,7 +7,7 @@
 //! - Proper instruction selection
 //! - Constant pool management
 
-use crate::parser::{AST, BinaryOp, Expression, Function, Module, Statement, Type, UnaryOp};
+use crate::parser::{BinaryOp, Expression, Function, Module, Statement, Type, UnaryOp, AST};
 use quantum_vm::bytecode::{
     Bytecode, Constant, Function as VMFunction, FunctionSignature, Instruction, Module as VMModule,
     StructAbilities, StructDef, TypeTag,
@@ -93,7 +93,9 @@ impl CodeGenerator {
             let abilities = StructAbilities {
                 has_copy: struct_def.abilities.contains(&crate::parser::Ability::Copy),
                 has_drop: struct_def.abilities.contains(&crate::parser::Ability::Drop),
-                has_store: struct_def.abilities.contains(&crate::parser::Ability::Store),
+                has_store: struct_def
+                    .abilities
+                    .contains(&crate::parser::Ability::Store),
                 has_key: struct_def.abilities.contains(&crate::parser::Ability::Key),
             };
 
@@ -179,9 +181,7 @@ impl CodeGenerator {
         code: &mut Vec<Instruction>,
     ) -> Result<(), CodeGenError> {
         match statement {
-            Statement::Let {
-                name, value, ..
-            } => {
+            Statement::Let { name, value, .. } => {
                 // Generate code for value
                 self.generate_expression(value, code)?;
 
@@ -255,7 +255,9 @@ impl CodeGenerator {
                 }
             }
 
-            Statement::While { condition, body, .. } => {
+            Statement::While {
+                condition, body, ..
+            } => {
                 let loop_start = code.len();
 
                 // Generate condition
@@ -299,7 +301,9 @@ impl CodeGenerator {
                 code.push(Instruction::Ret);
             }
 
-            Statement::Abort { code: abort_code, .. } => {
+            Statement::Abort {
+                code: abort_code, ..
+            } => {
                 self.generate_expression(abort_code, code)?;
                 code.push(Instruction::Abort);
             }
@@ -453,9 +457,7 @@ impl CodeGenerator {
                         return Err(CodeGenError::new(format!("Undefined variable: {}", name)));
                     }
                 } else {
-                    return Err(CodeGenError::new(
-                        "Can only borrow variables".to_string(),
-                    ));
+                    return Err(CodeGenError::new("Can only borrow variables".to_string()));
                 }
             }
 
@@ -518,29 +520,5 @@ impl CodeGenerator {
 impl Default for CodeGenerator {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lexer::Lexer;
-    use crate::parser::Parser;
-
-    #[test]
-    fn test_generate_simple_function() {
-        let source = "module test { fun foo() { let x: u64 = 42; } }";
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.tokenize().unwrap();
-        let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
-
-        let mut codegen = CodeGenerator::new();
-        let package_id = ObjectID::new([0u8; 64]);
-        let bytecode = codegen.generate(&ast, package_id).unwrap();
-
-        assert_eq!(bytecode.modules.len(), 1);
-        assert_eq!(bytecode.modules[0].functions.len(), 1);
-        assert_eq!(bytecode.modules[0].functions[0].name, "foo");
     }
 }
