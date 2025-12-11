@@ -428,7 +428,27 @@ impl TypeChecker {
                         Err(self.errors.clone())
                     }
                 } else {
-                    Ok(Type::Bool) // Placeholder
+                    // For complex function expressions (e.g., method calls, closures)
+                    // Check the function expression type and validate it's callable
+                    let func_type = self.check_expression(function)?;
+                    
+                    // Validate that all arguments can be type-checked
+                    for arg in arguments {
+                        self.check_expression(arg)?;
+                    }
+                    
+                    // For complex expressions, we can't determine the return type statically
+                    // Return Bool as a conservative default
+                    // In a full implementation, this would track function types through the type system
+                    self.errors.push(TypeError::new(
+                        format!(
+                            "Cannot determine return type for complex function expression: {}",
+                            self.type_to_string(&func_type)
+                        ),
+                        location.line,
+                        location.column,
+                    ));
+                    Err(self.errors.clone())
                 }
             }
 

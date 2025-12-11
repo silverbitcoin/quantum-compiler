@@ -496,6 +496,16 @@ impl Parser {
         std::mem::discriminant(&self.current().token_type) == std::mem::discriminant(token_type)
     }
 
+    /// Match one of multiple token types and return the matched token
+    fn match_token(&mut self, types: &[TokenType]) -> Option<Token> {
+        for token_type in types {
+            if self.check(token_type) {
+                return Some(self.advance().clone());
+            }
+        }
+        None
+    }
+
     /// Consume a token if it matches the expected type
     fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, String> {
         if self.check(&token_type) {
@@ -993,9 +1003,217 @@ impl Parser {
         Ok(Statement::Expression { expr, location })
     }
 
-    /// Parse expression (simplified - just primary for now)
+    /// Parse expression with full operator precedence
     fn parse_expression(&mut self) -> Result<Expression, String> {
-        self.parse_primary()
+        self.parse_logical_or()
+    }
+
+    /// Parse logical OR expressions (lowest precedence)
+    fn parse_logical_or(&mut self) -> Result<Expression, String> {
+        let mut left = self.parse_logical_and()?;
+
+        while self.check(&TokenType::Or) {
+            let op_token = self.advance().clone();
+            let right = self.parse_logical_and()?;
+            left = Expression::Binary {
+                op: BinaryOp::Or,
+                left: Box::new(left),
+                right: Box::new(right),
+                location: op_token.location,
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse logical AND expressions
+    fn parse_logical_and(&mut self) -> Result<Expression, String> {
+        let mut left = self.parse_equality()?;
+
+        while self.check(&TokenType::And) {
+            let op_token = self.advance().clone();
+            let right = self.parse_equality()?;
+            left = Expression::Binary {
+                op: BinaryOp::And,
+                left: Box::new(left),
+                right: Box::new(right),
+                location: op_token.location,
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse equality expressions
+    fn parse_equality(&mut self) -> Result<Expression, String> {
+        let mut left = self.parse_comparison()?;
+
+        while let Some(op) = self.match_token(&[TokenType::Equal, TokenType::NotEqual]) {
+            let op_enum = match op.token_type {
+                TokenType::Equal => BinaryOp::Equal,
+                TokenType::NotEqual => BinaryOp::NotEqual,
+                _ => unreachable!(),
+            };
+            let right = self.parse_comparison()?;
+            left = Expression::Binary {
+                op: op_enum,
+                left: Box::new(left),
+                right: Box::new(right),
+                location: op.location,
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse comparison expressions
+    fn parse_comparison(&mut self) -> Result<Expression, String> {
+        let mut left = self.parse_additive()?;
+
+        while let Some(op) = self.match_token(&[
+            TokenType::Less,
+            TokenType::LessEqual,
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+        ]) {
+            let op_enum = match op.token_type {
+                TokenType::Less => BinaryOp::Less,
+                TokenType::LessEqual => BinaryOp::LessEqual,
+                TokenType::Greater => BinaryOp::Greater,
+                TokenType::GreaterEqual => BinaryOp::GreaterEqual,
+                _ => unreachable!(),
+            };
+            let right = self.parse_additive()?;
+            left = Expression::Binary {
+                op: op_enum,
+                left: Box::new(left),
+                right: Box::new(right),
+                location: op.location,
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse additive expressions
+    fn parse_additive(&mut self) -> Result<Expression, String> {
+        let mut left = self.parse_multiplicative()?;
+
+        while let Some(op) = self.match_token(&[TokenType::Plus, TokenType::Minus]) {
+            let op_enum = match op.token_type {
+                TokenType::Plus => BinaryOp::Add,
+                TokenType::Minus => BinaryOp::Sub,
+                _ => unreachable!(),
+            };
+            let right = self.parse_multiplicative()?;
+            left = Expression::Binary {
+                op: op_enum,
+                left: Box::new(left),
+                right: Box::new(right),
+                location: op.location,
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse multiplicative expressions
+    fn parse_multiplicative(&mut self) -> Result<Expression, String> {
+        let mut left = self.parse_unary()?;
+
+        while let Some(op) = self.match_token(&[TokenType::Star, TokenType::Slash, TokenType::Percent]) {
+            let op_enum = match op.token_type {
+                TokenType::Star => BinaryOp::Mul,
+                TokenType::Slash => BinaryOp::Div,
+                TokenType::Percent => BinaryOp::Mod,
+                _ => unreachable!(),
+            };
+            let right = self.parse_unary()?;
+            left = Expression::Binary {
+                op: op_enum,
+                left: Box::new(left),
+                right: Box::new(right),
+                location: op.location,
+            };
+        }
+
+        Ok(left)
+    }
+
+    /// Parse unary expressions
+    fn parse_unary(&mut self) -> Result<Expression, String> {
+        if self.check(&TokenType::Not) {
+            let op_token = self.advance().clone();
+            let expr = self.parse_unary()?;
+            return Ok(Expression::Unary {
+                op: UnaryOp::Not,
+                operand: Box::new(expr),
+                location: op_token.location,
+            });
+        }
+
+        if self.check(&TokenType::Minus) {
+            let op_token = self.advance().clone();
+            let expr = self.parse_unary()?;
+            return Ok(Expression::Unary {
+                op: UnaryOp::Neg,
+                operand: Box::new(expr),
+                location: op_token.location,
+            });
+        }
+
+        self.parse_postfix()
+    }
+
+    /// Parse postfix expressions (function calls, field access, indexing)
+    fn parse_postfix(&mut self) -> Result<Expression, String> {
+        let mut expr = self.parse_primary()?;
+
+        loop {
+            if self.check(&TokenType::LeftParen) {
+                // Function call
+                self.advance();
+                let mut args = Vec::new();
+
+                if !self.check(&TokenType::RightParen) {
+                    loop {
+                        args.push(self.parse_expression()?);
+                        if !self.check(&TokenType::Comma) {
+                            break;
+                        }
+                        self.advance();
+                    }
+                }
+
+                let token = self.consume(TokenType::RightParen, "Expected ')'")?;
+                let location = token.location;
+                expr = Expression::Call {
+                    function: Box::new(expr),
+                    arguments: args,
+                    location,
+                };
+            } else if self.check(&TokenType::Dot) {
+                // Field access
+                self.advance();
+                let field_token = self.advance().clone();
+                if let TokenType::Identifier(field_name) = &field_token.token_type {
+                    expr = Expression::FieldAccess {
+                        object: Box::new(expr),
+                        field: field_name.clone(),
+                        location: field_token.location,
+                    };
+                } else {
+                    return Err(format!(
+                        "{}: Expected field name after '.'",
+                        field_token.location
+                    ));
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
     }
 
     /// Parse primary expression
